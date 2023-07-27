@@ -76,6 +76,9 @@ int main() {
     int *p = &g[0];
     printf("\nQ17:\t%d", *(p + h));
 
+    // Floating point exception
+    // float test = 7/0;
+    // printf("\nDivide by zero:\t%lf", test);
     printf("\n\n");
     return 0;
 }
