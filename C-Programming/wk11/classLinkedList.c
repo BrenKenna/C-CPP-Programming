@@ -2,10 +2,8 @@
  * Double linked list where the recursive data structure
  *  nodes holds reference to their parent, and their child.
  * 
- * Given quirks with sorting, list could start a root node
- *  which points to first elemment.
  *  
- * OrderIn has to be updated following a drop
+ * OrderIn included for testing purposed
  * 
  * Includes methods for:
  *  1). Initializing null node
