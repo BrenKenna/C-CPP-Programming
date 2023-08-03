@@ -3,11 +3,22 @@
  * Numbers orientated Binary Search Tree (BST)
  * 
  * Trialing that the body of the tree is on the left of the root node.
+ *   => Hadn't seen the trick from lecture vids, not doing this again ;)
  * 
- * With the view of allowing a "Table" to have its "Columns" indexed.
+ * But the view of allowing a "Table" to have 'all' its "Columns" indexed.
  *  Allowing another structure to have an array of named BSTs.
  *  But should really be its own structure, so that the size etc can
- *   be tracked
+ *   be tracked as a tree grows/shrinks. 
+ * 
+ * Storing parent, allows another function to detnermine active nodes placement
+ *  on the parent:
+ *    => Meaning for a deletion, we can get the node matching a query.
+ *    => Determine its placement on the parent.
+ *    => If node has children, swap relevant child.
+ *    => Concatenate alternate brach into tree, freeing memory
+ *        allocation of the sub-tree (feed child nodes back into main tree).
+ *    => Basicially an add from the largest/smallest depending on child-parent placement.
+ *    => Realistically, easier to just create a new BST from list original list data :).
 */
 
 // Imports
@@ -23,6 +34,7 @@ typedef struct binarySearchTree {
     struct binarySearchTree* right;
     struct binarySearchTree* parent;
     int isRoot;
+    int isTail;
     string memberOf;
 } binarySearchTree;
 
@@ -44,6 +56,7 @@ binarySearchTree* initTree() {
     tree-> right = NULL;
     tree-> parent = NULL;
     tree-> isRoot = 1;
+    tree-> isTail = 0;
     tree-> memberOf = "default_tree";
     return tree;
 }
@@ -56,6 +69,7 @@ binarySearchTree* initNode(int value) {
     node-> right = NULL;
     node-> parent = NULL;
     node-> isRoot = 0;
+    node-> isTail = 1;
     node-> memberOf = "default_tree";
     return node;
 }
@@ -69,6 +83,7 @@ binarySearchTree* initNullNode() {
     node-> right = NULL;
     node-> parent = NULL;
     node-> isRoot = 0;
+    node-> isTail = 0;
     return node;
 }
 
@@ -167,17 +182,18 @@ void addNode(binarySearchTree *tree, int value) {
         if (value < tree-> data) {
 
             // Set if left is null
-            if (tree->left == NULL) {
+            if (tree-> left == NULL) {
                 binarySearchTree *newLeft = initNode(value);
                 printf("\nNew Left Node value is '%d'", newLeft-> data);
-                tree->left = newLeft;
-                newLeft->parent = tree;
+                tree-> left = newLeft;
+                tree-> isTail = 0;
+                newLeft-> parent = tree;
                 return ;
             }
 
             // Otherwise progress on left
             else {
-                binarySearchTree *nextNode = tree->left;
+                binarySearchTree *nextNode = tree-> left;
                 return addNode(nextNode, value);
             }
         }
@@ -186,17 +202,18 @@ void addNode(binarySearchTree *tree, int value) {
         if (value > tree->data) {
 
             // Set if right is null
-            if (tree->right == NULL) {
+            if (tree-> right == NULL) {
                 binarySearchTree *newRight = initNode(value);
                 printf("\nNew Right Node value is '%d'", newRight-> data);
-                tree->right = newRight;
-                newRight->parent = tree;
+                tree-> right = newRight;
+                tree-> isTail = 0;
+                newRight-> parent = tree;
                 return ;
             }
 
             // Otherwise progress on right
             else {
-                binarySearchTree *nextNode = tree->right;
+                binarySearchTree *nextNode = tree-> right;
                 return addNode(nextNode, value);
             }
         }
@@ -360,7 +377,71 @@ binarySearchTree* generateTree(int nRecords) {
  * 
 */
 
-// Print values surrounding node
+
+// Print tree in order
+void printTree(binarySearchTree *tree, int ascendingOrder) {
+
+    // Print in order from smallest
+    if ( ascendingOrder == 1 ) {
+
+        // Print ascending order providing the body of the tree
+        printInOrder(tree-> left);
+    }
+
+    // Else largest
+    else if ( ascendingOrder == 0 ) {
+
+        // Print descending order providing the body of the tree
+        printInDescOrder(tree-> left);
+    }
+
+    // Otherwise error
+    else {
+        printf("\n\nError please supply an ordering for print");
+    }
+}
+
+// Print in ascending order
+void printInOrder(binarySearchTree *treeBody) {
+
+    // Down to the smallest
+    if ( !(treeBody-> left == NULL) ) {
+        //printf("\nA Move left has happened\n");
+        printInOrder(treeBody-> left);
+    }
+
+    // Printing if tail
+    if ( treeBody-> isTail == 1 ) {
+        printf("%d\n", treeBody-> data);
+    }
+
+    // Up to the largest
+    if ( !(treeBody-> right == NULL) ) {
+        //printf("\nA Move right has happened\n");
+        printInOrder(treeBody-> right);
+    }
+}
+
+// Print in descending order
+void printInDescOrder(binarySearchTree *treeBody) {
+
+    // Up to the largest
+    if ( !(treeBody-> right == NULL) ) {
+        printInDescOrder(treeBody-> right);
+    }
+
+    // Printing if tail
+    if ( treeBody-> isTail == 1 ) {
+        printf("%d\n", treeBody-> data);
+    }
+
+    // Down to the smallest
+    if ( !(treeBody-> left == NULL) ) {
+        printInDescOrder(treeBody-> left);
+    }
+}
+
+// Print values a surrounding node
 void printValidValues(binarySearchTree *tree) {
 
     //printf("\n\nPrinting values surrounding node\n");
@@ -477,9 +558,15 @@ int main() {
     }
 
 
-    // Test get
-    printf("\n\nTesting retrevial of a node whose value is first nodes left:");
-    value = node-> left-> data;
+    // Test get: Very rare chance of breaking
+    printf("\n\nTesting retrevial of a node whose value is first nodes left:"); printf("\n");
+    if ( node-> left != NULL ) {
+        value = node-> left-> data;
+    }
+    else {
+        printf("\nAdjusting test for another value");
+        value = rand() % 300;;
+    }
     node = getNode(myTree, value);
     if ( node->data == NULL ) {
         printf("\nQuery result is null");
@@ -499,6 +586,19 @@ int main() {
         string nodePlacement = childPlacement(node);
         printf("'%s'\n", nodePlacement);
     }
+
+
+    // Test printing tree: Ascending
+    printf("\n\nTesting printing of the tree:\n");
+    printf("\n-------------Running ascending print-------------\n"); printf("\n");
+    int ascendingOrder = 1;
+    printTree(myTree, ascendingOrder);
+    printf("\n-------------Running ascending print-------------\n"); printf("\n");
+
+    // Test printing tree: Descending
+    printf("\n-------------Running descending print-------------\n"); printf("\n");
+    printTree(myTree, 0);
+    printf("\n-------------Running descending print-------------\n"); printf("\n");
 
     // Log completion
     printf("\n\n");
